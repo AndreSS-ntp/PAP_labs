@@ -8,7 +8,6 @@ import (
 	"net"
 )
 
-// Server represents the chat server
 type Server struct {
 	address    string
 	listener   net.Listener
@@ -17,7 +16,6 @@ type Server struct {
 	controller *controller.Controller
 }
 
-// NewServer creates a new server instance
 func NewServer(address string) *Server {
 	model := model.NewModel()
 	view := view.NewView()
@@ -31,7 +29,6 @@ func NewServer(address string) *Server {
 	}
 }
 
-// Start starts the server and begins accepting connections
 func (s *Server) Start() error {
 	listener, err := net.Listen("tcp", s.address)
 	if err != nil {
@@ -49,12 +46,10 @@ func (s *Server) Start() error {
 			continue
 		}
 
-		// Handle each connection in a separate goroutine
 		go s.controller.HandleConnection(conn)
 	}
 }
 
-// Stop stops the server
 func (s *Server) Stop() error {
 	if s.listener != nil {
 		return s.listener.Close()

@@ -159,7 +159,6 @@ func (c *ChatClient) readMessages() {
 			return
 		}
 
-		// Add message to the list
 		c.AddMessage(strings.TrimSpace(message))
 	}
 }
@@ -184,7 +183,6 @@ func (c *ChatClient) Run() error {
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
 
-			// Handle connect button click
 			if c.connectBtn.Clicked() {
 				if !c.connected {
 					err := c.Connect()
@@ -199,7 +197,6 @@ func (c *ChatClient) Run() error {
 				}
 			}
 
-			// Handle send button click or Enter key
 			if (c.sendBtn.Clicked() || c.msgInput.Submit) && c.connected {
 				msg := strings.TrimSpace(c.msgInput.Text())
 				if msg != "" {
@@ -212,7 +209,6 @@ func (c *ChatClient) Run() error {
 				c.msgInput.Submit = false
 			}
 
-			// Render UI
 			if !c.connected {
 				c.renderLoginScreen(gtx)
 			} else {
@@ -249,7 +245,6 @@ func (c *ChatClient) renderLoginScreen(gtx layout.Context) {
 							return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									label := material.Body1(c.th, "Server IP: ")
-									// Make label bold
 									return label.Layout(gtx)
 								}),
 								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -263,7 +258,6 @@ func (c *ChatClient) renderLoginScreen(gtx layout.Context) {
 							return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									label := material.Body1(c.th, "User Name: ")
-									// Make label bold
 									return label.Layout(gtx)
 								}),
 								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
