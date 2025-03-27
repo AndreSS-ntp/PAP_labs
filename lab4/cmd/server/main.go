@@ -3,38 +3,15 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"net/http"
-	"net/rpc"
 
 	"github.com/AndreSS-ntp/PAP_labs/tree/main/lab4/pkg/matrixops"
+	"github.com/divan/gorilla-xmlrpc/xml"
 	"github.com/fatih/color"
+	"github.com/gorilla/rpc"
 )
 
-type MatrixServiceWrapper struct {
-	Service *matrixops.MatrixService
-}
-
-// ProcessMatrixAndPrint is an RPC method that processes the matrix and prints results
-func (w *MatrixServiceWrapper) ProcessMatrixAndPrint(args *matrixops.MatrixArgs, result *matrixops.MatrixResult) error {
-	err := w.Service.ProcessMatrix(args, result)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Server received matrix:")
-	printMatrix(args.Matrix)
-
-	fmt.Printf("Minimum diagonal element: %d (on %s diagonal)\n",
-		result.MinDiagElement,
-		[]string{"main", "secondary"}[result.MinDiagIndex])
-
-	fmt.Println("Result matrix:")
-	printMatrix(result.ResultMatrix)
-
-	return nil
-}
-
+// Helper function to print a matrix
 func printMatrix(matrix [][]int) {
 	for _, row := range matrix {
 		fmt.Println(row)
@@ -43,30 +20,30 @@ func printMatrix(matrix [][]int) {
 }
 
 func main() {
+	// Create a new RPC server
+	s := rpc.NewServer()
+
+	// Register XML codec
+	s.RegisterCodec(xml.NewCodec(), "text/xml")
+
+	// Create a new instance of the matrix service
 	matrixService := new(matrixops.MatrixService)
 
-	err := rpc.Register(matrixService)
+	// Register the service
+	err := s.RegisterService(matrixService, "")
 	if err != nil {
 		log.Fatal("Error registering matrix service:", err)
 	}
 
-	wrapper := &MatrixServiceWrapper{Service: matrixService}
-	err = rpc.Register(wrapper)
-	if err != nil {
-		log.Fatal("Error registering wrapper service:", err)
-	}
+	// Create HTTP handler for RPC
+	http.Handle("/RPC2", s)
 
-	rpc.HandleHTTP()
-
-	listener, err := net.Listen("tcp", ":1234")
-	if err != nil {
-		log.Fatal("Error listening:", err)
-	}
-
+	// Print server information
 	color.Green("Matrix processing server started on port 1234")
 	color.Yellow("Waiting for client connections...")
 
-	err = http.Serve(listener, nil)
+	// Start serving HTTP requests
+	err = http.ListenAndServe(":1234", nil)
 	if err != nil {
 		log.Fatal("Error serving:", err)
 	}
