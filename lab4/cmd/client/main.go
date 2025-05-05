@@ -55,7 +55,7 @@ func main() {
 	if err != nil {
 		log.Fatal("XML decode error:", err)
 	}
-	fmt.Println(reply)
+
 	log.Println("Received GET response with results")
 
 	fmt.Println("\nOriginal matrix:")

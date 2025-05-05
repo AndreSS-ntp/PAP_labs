@@ -1,0 +1,23 @@
+[
+  {
+    "id": "1",
+    "origin": "Moscow",
+    "destination": "Saint-Petersburg",
+    "date": "2023-12-01",
+    "seats": 50
+  },
+  {
+    "id": "2",
+    "origin": "Moscow",
+    "destination": "Sochi",
+    "date": "2023-12-02",
+    "seats": 30
+  },
+  {
+    "id": "3",
+    "origin": "Saint-Petersburg",
+    "destination": "Sochi",
+    "date": "2023-12-03",
+    "seats": 40
+  }
+]
