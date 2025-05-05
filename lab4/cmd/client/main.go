@@ -1,120 +1,66 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
+	"encoding/xml"
 	"fmt"
+	"github.com/AndreSS-ntp/PAP_labs/tree/main/lab4/internal/model"
+	"github.com/AndreSS-ntp/PAP_labs/tree/main/lab4/internal/view"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
-
-	"github.com/AndreSS-ntp/PAP_labs/tree/main/lab4/pkg/matrixops"
-	"github.com/divan/gorilla-xmlrpc/xml"
-	"github.com/fatih/color"
 )
 
 func main() {
-	// Create XML-RPC client
-	client := new(http.Client)
+	if len(os.Args) != 2 {
+		log.Fatal("Usage: go run client.go <server_address>")
+	}
+	serverAddress := os.Args[1]
 
-	color.Green("Connected to matrix processing server")
-	fmt.Println()
-
-	// Get matrix size from user
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter matrix size (n for n×n matrix): ")
-	sizeStr, _ := reader.ReadString('\n')
-	sizeStr = strings.TrimSpace(sizeStr)
-
-	size, err := strconv.Atoi(sizeStr)
-	if err != nil || size <= 0 {
-		log.Fatal("Invalid matrix size. Please enter a positive integer.")
+	var size int
+	fmt.Print("Enter matrix size: ")
+	_, err := fmt.Scan(&size)
+	if err != nil {
+		log.Fatal("Input error:", err)
 	}
 
-	// Initialize the matrix
-	matrix := make([][]int, size)
-	for i := range matrix {
-		matrix[i] = make([]int, size)
-	}
-
-	// Get matrix elements from user
-	fmt.Printf("Enter the elements of the %d×%d matrix row by row:\n", size, size)
-
+	matrix := model.Matrix{Rows: make([]model.Row, size)}
 	for i := 0; i < size; i++ {
-		fmt.Printf("Row %d (space-separated integers): ", i+1)
-		rowStr, _ := reader.ReadString('\n')
-		rowStr = strings.TrimSpace(rowStr)
-
-		// Split the row string into individual numbers
-		elements := strings.Fields(rowStr)
-
-		if len(elements) != size {
-			log.Fatalf("Expected %d elements for row %d, but got %d", size, i+1, len(elements))
-		}
-
-		// Convert string elements to integers
-		for j, element := range elements {
-			val, err := strconv.Atoi(element)
+		matrix.Rows[i].Cols = make([]int, size)
+		for j := 0; j < size; j++ {
+			fmt.Printf("Enter element [%d][%d]: ", i, j)
+			_, err := fmt.Scan(&matrix.Rows[i].Cols[j])
 			if err != nil {
-				log.Fatalf("Invalid integer at row %d, column %d: %s", i+1, j+1, element)
+				log.Fatal("Input error:", err)
 			}
-			matrix[i][j] = val
 		}
 	}
 
-	// Prepare the arguments for the RPC call
-	args := matrixops.MatrixArgs{Matrix: matrix}
-	var result matrixops.MatrixResult
-
-	// Create XML-RPC request
-	message, err := xml.EncodeClientRequest("MatrixService.ProcessMatrixAndPrint", args)
+	args := model.MatrixArgs{Matrix: matrix}
+	xmlData, err := xml.MarshalIndent(args, "", "  ")
 	if err != nil {
-		log.Fatal("Error encoding client request:", err)
+		log.Fatal("XML encoding error:", err)
 	}
 
-	// Send request to server
-	req, err := http.NewRequest("POST", "http://localhost:1234/RPC2", bytes.NewBuffer(message))
-	if err != nil {
-		log.Fatal("Error creating request:", err)
-	}
-	req.Header.Set("Content-Type", "text/xml")
+	log.Printf("Sending POST request with XML:\n%s\n", xmlData)
 
-	// Get response
-	resp, err := client.Do(req)
+	resp, err := http.Post("http://"+serverAddress+"/rpc", "text/xml", bytes.NewBuffer(xmlData))
 	if err != nil {
-		log.Fatal("Error sending request:", err)
+		log.Fatal("POST request error:", err)
 	}
 	defer resp.Body.Close()
 
-	// Decode response
-	err = xml.DecodeClientResponse(resp.Body, &result)
+	var reply model.MatrixReply
+	err = xml.NewDecoder(resp.Body).Decode(&reply)
 	if err != nil {
-		log.Fatal("Error decoding response:", err)
+		log.Fatal("XML decode error:", err)
 	}
+	fmt.Println(reply)
+	log.Println("Received GET response with results")
 
-	// Display the results
-	fmt.Println("\nResults from server:")
-
-	color.Cyan("Original Matrix:")
-	printMatrix(result.OriginalMatrix)
-
-	color.Yellow("Minimum diagonal element: %d (on %s diagonal)",
-		result.MinDiagElement,
-		[]string{"main", "secondary"}[result.MinDiagIndex])
-
-	color.Cyan("Processed Matrix:")
-	printMatrix(result.ResultMatrix)
-}
-
-// Helper function to print a matrix
-func printMatrix(matrix [][]int) {
-	for _, row := range matrix {
-		for _, val := range row {
-			fmt.Printf("%4d ", val)
-		}
-		fmt.Println()
-	}
-	fmt.Println()
+	fmt.Println("\nOriginal matrix:")
+	view.PrintMatrix(reply.Original)
+	fmt.Println("\nMin diagonal value:", reply.MinValue)
+	fmt.Println("\nProcessed matrix:")
+	view.PrintMatrix(reply.Processed)
 }
